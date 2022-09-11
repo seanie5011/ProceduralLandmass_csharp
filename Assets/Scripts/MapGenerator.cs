@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class MapGenerator : MonoBehaviour
 {
-    public enum DrawMode { NoiseMap, ColorMap }
+    public enum DrawMode { NoiseMap, ColorMap, Mesh }
     public DrawMode drawMode;
 
     public int mapWidth;
@@ -16,6 +16,9 @@ public class MapGenerator : MonoBehaviour
     public float persistance;
     public float lacunarity;
     public Vector2 offset;
+
+    public float meshHeightMultiplier;
+    public AnimationCurve meshHeightCurve;  // lets us define a falloff for height multiplier
 
     public bool autoUpdate = false;
 
@@ -53,7 +56,7 @@ public class MapGenerator : MonoBehaviour
         // get map display from MapDisplay script
         MapDisplay display = FindObjectOfType<MapDisplay>();
 
-        // draw the noise map or color map depending on which is selected
+        // draw the noise map or color map or mesh depending on which is selected
         if (drawMode == DrawMode.NoiseMap)
         {
             display.DrawTexture(TextureGenerator.TextureFromHeightMap(noiseMap));
@@ -61,6 +64,12 @@ public class MapGenerator : MonoBehaviour
         else if (drawMode == DrawMode.ColorMap)
         {
             display.DrawTexture(TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+        }
+        else if (drawMode == DrawMode.Mesh)
+        {
+            // draw mesh draws both the mesh and the colour on top of the mesh
+            // takes in the mesh and the color map
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve), TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
         }
     }
 
