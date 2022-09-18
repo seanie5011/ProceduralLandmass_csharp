@@ -7,8 +7,10 @@ public class MapGenerator : MonoBehaviour
     public enum DrawMode { NoiseMap, ColorMap, Mesh }
     public DrawMode drawMode;
 
-    public int mapWidth;
-    public int mapHeight;
+    public const int mapChunkSize = 241;  // max amount of triangles in a mesh is 255*255
+
+    [Range(0, 6)]  // these will be multiplied by 2 to ensure we get 2, 4, 6, 8, 10, 12, since these are factors of 241 - 1 = 240
+    public int levelOfDetail;  // to determine mesh size at large distances
     public int seed;
     public float noiseScale;
     public int octaves;
@@ -28,13 +30,13 @@ public class MapGenerator : MonoBehaviour
     public void GenerateMap()
     {
         // get noise map from Noise script
-        float[,] noiseMap = Noise.GenerateNoiseMap(mapWidth, mapHeight, seed, noiseScale, octaves, persistance, lacunarity, offset);
+        float[,] noiseMap = Noise.GenerateNoiseMap(mapChunkSize, mapChunkSize, seed, noiseScale, octaves, persistance, lacunarity, offset);
 
         // assign colors based on regions and height
-        Color[] colorMap = new Color[mapWidth * mapHeight];  // color map for all points
-        for (int y = 0; y < mapHeight; y++)
+        Color[] colorMap = new Color[mapChunkSize * mapChunkSize];  // color map for all points
+        for (int y = 0; y < mapChunkSize; y++)
         {
-            for (int x = 0; x < mapHeight; x++)
+            for (int x = 0; x < mapChunkSize; x++)
             {
                 // get current height from noise map
                 float currentHeight = noiseMap[x, y];
@@ -46,7 +48,7 @@ public class MapGenerator : MonoBehaviour
                     if (currentHeight <= regions[i].height)
                     {
                         // assign color and break out of region loop
-                        colorMap[y * mapWidth + x] = regions[i].color;
+                        colorMap[y * mapChunkSize + x] = regions[i].color;
                         break;
                     }
                 }
@@ -63,13 +65,13 @@ public class MapGenerator : MonoBehaviour
         }
         else if (drawMode == DrawMode.ColorMap)
         {
-            display.DrawTexture(TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+            display.DrawTexture(TextureGenerator.TextureFromColorMap(colorMap, mapChunkSize, mapChunkSize));
         }
         else if (drawMode == DrawMode.Mesh)
         {
             // draw mesh draws both the mesh and the colour on top of the mesh
             // takes in the mesh and the color map
-            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve), TextureGenerator.TextureFromColorMap(colorMap, mapWidth, mapHeight));
+            display.DrawMesh(MeshGenerator.GenerateTerrainMesh(noiseMap, meshHeightMultiplier, meshHeightCurve, levelOfDetail), TextureGenerator.TextureFromColorMap(colorMap, mapChunkSize, mapChunkSize));
         }
     }
 
@@ -77,16 +79,6 @@ public class MapGenerator : MonoBehaviour
     private void OnValidate()
     {
         // clamp values
-        if (mapWidth < 1)
-        {
-            mapWidth = 1;
-        }
-
-        if (mapHeight < 1)
-        {
-            mapHeight = 1;
-        }
-
         if (lacunarity < 1)
         {
             lacunarity = 1;
